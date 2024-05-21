@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.programs.khard;
 
   accounts =
@@ -9,17 +13,18 @@ let
     toINI {
       mkKeyValue = mkKeyValueDefault rec {
         mkValueString = v:
-          if lib.isList v then
-            lib.concatStringsSep ", " v
-          else if lib.isBool v then
-            if v then "yes" else "no"
-          else
-            v;
+          if lib.isList v
+          then lib.concatStringsSep ", " v
+          else if lib.isBool v
+          then
+            if v
+            then "yes"
+            else "no"
+          else v;
       } "=";
     };
 in {
-  meta.maintainers =
-    [ lib.hm.maintainers.olmokramer lib.maintainers.antonmosich ];
+  meta.maintainers = [lib.hm.maintainers.olmokramer lib.maintainers.antonmosich];
 
   options = {
     programs.khard = {
@@ -28,8 +33,10 @@ in {
       settings = lib.mkOption {
         type = with lib.types;
           submodule {
-            freeformType = let primOrList = oneOf [ bool str (listOf str) ];
-            in attrsOf (attrsOf primOrList);
+            freeformType = let
+              primOrList = oneOf [bool str (listOf str)];
+            in
+              attrsOf (attrsOf primOrList);
 
             options.general.default_action = lib.mkOption {
               type = str;
@@ -37,7 +44,7 @@ in {
               description = "The default action to execute.";
             };
           };
-        default = { };
+        default = {};
         description = ''
           Khard settings. See
           <https://khard.readthedocs.io/en/latest/#configuration>
@@ -78,14 +85,15 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ pkgs.khard ];
+    home.packages = [pkgs.khard];
 
     xdg.configFile."khard/khard.conf".text = let
       makePath = anAccount:
-        builtins.toString (/. + lib.concatStringsSep "/" [
-          anAccount.local.path
-          anAccount.khard.defaultCollection
-        ]);
+        builtins.toString (/.
+          + lib.concatStringsSep "/" [
+            anAccount.local.path
+            anAccount.khard.defaultCollection
+          ]);
     in ''
       [addressbooks]
       ${lib.concatMapStringsSep "\n" (acc: ''
@@ -96,4 +104,6 @@ in {
       ${renderSettings cfg.settings}
     '';
   };
+
+  # TODO: Is a news entry necessary?
 }
