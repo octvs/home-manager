@@ -3,46 +3,41 @@
   lib,
   pkgs,
   ...
-}:
-
-let
-
+}: let
   cfg = config.programs.rclone;
-  iniFormat = pkgs.formats.ini { };
-
-in
-{
+  iniFormat = pkgs.formats.ini {};
+in {
   options = {
     programs.rclone = {
       enable = lib.mkEnableOption "rclone";
 
-      package = lib.mkPackageOption pkgs "rclone" { };
+      package = lib.mkPackageOption pkgs "rclone" {};
 
       remotes = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule {
             options = {
               config = lib.mkOption {
-                type =
-                  with lib.types;
-                  let
-                    baseType = attrsOf (
-                      nullOr (oneOf [
-                        bool
-                        int
-                        float
-                        str
-                      ])
-                    );
+                type = with lib.types; let
+                  baseType = attrsOf (
+                    nullOr (oneOf [
+                      bool
+                      int
+                      float
+                      str
+                    ])
+                  );
 
-                    # Should we verify whether type constitutes a valid remote?
-                    remoteConfigType = addCheck baseType (lib.hasAttr "type") // {
+                  # Should we verify whether type constitutes a valid remote?
+                  remoteConfigType =
+                    addCheck baseType (lib.hasAttr "type")
+                    // {
                       name = "rcloneRemoteConfig";
                       description = "An attribute set containing a remote type and options.";
                     };
-                  in
+                in
                   remoteConfigType;
-                default = { };
+                default = {};
                 description = ''
                   Regular configuration options as described in rclone's documentation
                   <https://rclone.org/docs/>. When specifying options follow the formatting
@@ -69,7 +64,7 @@ in
 
               secrets = lib.mkOption {
                 type = with lib.types; attrsOf str;
-                default = { };
+                default = {};
                 description = ''
                   Sensitive configuration values such as passwords, API keys, and tokens. These
                   must be provided as file paths to the secrets, which will be read at activation
@@ -90,7 +85,7 @@ in
             };
           }
         );
-        default = { };
+        default = {};
         description = ''
           An attribute set of remote configurations. Each remote consists of regular
           configuration options and optional secrets.
@@ -136,29 +131,28 @@ in
 
   config = lib.mkIf cfg.enable {
     home = {
-      packages = [ cfg.package ];
+      packages = [cfg.package];
 
-      activation.createRcloneConfig =
-        let
-          safeConfig = lib.pipe cfg.remotes [
-            (lib.mapAttrs (_: v: v.config))
-            (iniFormat.generate "rclone.conf@pre-secrets")
-          ];
+      activation.createRcloneConfig = let
+        safeConfig = lib.pipe cfg.remotes [
+          (lib.mapAttrs (_: v: v.config))
+          (iniFormat.generate "rclone.conf@pre-secrets")
+        ];
 
-          # https://github.com/rclone/rclone/issues/8190
-          injectSecret =
-            remote:
-            lib.mapAttrsToList (secret: secretFile: ''
-              ${lib.getExe cfg.package} config update \
-                ${remote.name} config_refresh_token=false \
-                ${secret} "$(cat ${secretFile})" \
-                --quiet > /dev/null
-            '') remote.value.secrets or { };
+        # https://github.com/rclone/rclone/issues/8190
+        injectSecret = remote:
+          lib.mapAttrsToList (secret: secretFile: ''
+            ${lib.getExe cfg.package} config update \
+              ${remote.name} config_refresh_token=false \
+              ${secret} "$(cat ${secretFile})" \
+              --quiet --non-interactive > /dev/null
+          '')
+          remote.value.secrets or {};
 
-          injectAllSecrets = lib.concatMap injectSecret (lib.mapAttrsToList lib.nameValuePair cfg.remotes);
-        in
-        lib.mkIf (cfg.remotes != { }) (
-          lib.hm.dag.entryAfter [ "writeBoundary" cfg.writeAfter ] ''
+        injectAllSecrets = lib.concatMap injectSecret (lib.mapAttrsToList lib.nameValuePair cfg.remotes);
+      in
+        lib.mkIf (cfg.remotes != {}) (
+          lib.hm.dag.entryAfter ["writeBoundary" cfg.writeAfter] ''
             run install $VERBOSE_ARG -D -m600 ${safeConfig} "${config.xdg.configHome}/rclone/rclone.conf"
             ${lib.concatLines injectAllSecrets}
           ''
@@ -166,5 +160,5 @@ in
     };
   };
 
-  meta.maintainers = with lib.hm.maintainers; [ jess ];
+  meta.maintainers = with lib.hm.maintainers; [jess];
 }
