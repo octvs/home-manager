@@ -18,6 +18,9 @@ let
 
   pythonize =
     v:
+    let
+      dictElem = key: val: (pythonize key) + ": " + (pythonize val);
+    in
     if v == null then
       "None"
     else if builtins.isBool v then
@@ -26,12 +29,10 @@ let
       ''"${v}"''
     else if builtins.isList v then
       "[${concatStringsSep ", " (map pythonize v)}]"
+    else if builtins.isAttrs v then
+      "{ " + (lib.concatMapAttrsStringSep ", " dictElem v) + " }"
     else
       builtins.toString v;
-
-  formatDictLine =
-    o: n: v:
-    ''${o}['${n}'] = "${v}"'';
 
   formatKeyBindings =
     m: b:
@@ -57,7 +58,7 @@ let
       ]) x
     );
 
-  configSet = l: "config.set(${lib.concatStringsSep ", " (map pythonize l)})";
+  configSet = l: "config.set(${lib.concatMapStringsSep ", " pythonize l})";
 
   setUrlConfig = url: conf: map (x: configSet (x ++ [ url ])) (flattenSettings conf);
 in
@@ -320,10 +321,22 @@ in
           (if cfg.loadAutoconfig then "config.load_autoconfig()" else "config.load_autoconfig(False)")
         ]
         ++ map configSet (flattenSettings cfg.settings)
-        ++ mapAttrsToList (formatDictLine "c.aliases") cfg.aliases
-        ++ mapAttrsToList (formatDictLine "c.url.searchengines") cfg.searchEngines
-        ++ mapAttrsToList (formatDictLine "c.bindings.key_mappings") cfg.keyMappings
-        ++ lib.optional (!cfg.enableDefaultBindings) "c.bindings.default = {}"
+        ++ lib.optional (cfg.aliases != { }) (configSet [
+          "url.aliases"
+          cfg.aliases
+        ])
+        ++ lib.optional (cfg.searchEngines != { }) (configSet [
+          "url.searchengines"
+          cfg.searchEngines
+        ])
+        ++ lib.optional (cfg.keyMappings != { }) (configSet [
+          "bindings.key_mappings"
+          cfg.keyMappings
+        ])
+        ++ lib.optional (!cfg.enableDefaultBindings) (configSet [
+          "bindings.default"
+          { }
+        ])
         ++ mapAttrsToList formatKeyBindings cfg.keyBindings
         ++ lib.optional (cfg.extraConfig != "") cfg.extraConfig
         ++ lib.lists.flatten (mapAttrsToList setUrlConfig cfg.perDomainSettings)

@@ -22,6 +22,8 @@
     extraConfig = ''
       # Extra qutebrowser configuration.
     '';
+
+    aliases.q = "close";
   };
 
   nmt.script =
@@ -42,6 +44,7 @@
           config.set("colors.tabs.bar.bg", "#000000")
           config.set("spellcheck.languages", ["en-US", "sv-SE"])
           config.set("tabs.tabs_are_windows", True)
+          config.set("url.aliases", { "q": "close" })
           # Extra qutebrowser configuration.
         ''}
     '';
