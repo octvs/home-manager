@@ -322,7 +322,7 @@ in
         ]
         ++ map configSet (flattenSettings cfg.settings)
         ++ lib.optional (cfg.aliases != { }) (configSet [
-          "url.aliases"
+          "aliases"
           cfg.aliases
         ])
         ++ lib.optional (cfg.searchEngines != { }) (configSet [
