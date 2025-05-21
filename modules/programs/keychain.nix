@@ -9,12 +9,7 @@ let
 
   cfg = config.programs.keychain;
 
-  flags =
-    cfg.extraFlags
-    ++ lib.optional (cfg.agents != [ ]) "--agents ${lib.concatStringsSep "," cfg.agents}"
-    ++ lib.optional (cfg.inheritType != null) "--inherit ${cfg.inheritType}";
-
-  shellCommand = "${cfg.package}/bin/keychain --eval ${lib.concatStringsSep " " flags} ${lib.concatStringsSep " " cfg.keys}";
+  shellCommand = "${cfg.package}/bin/keychain --eval ${lib.concatStringsSep " " cfg.extraFlags} ${lib.concatStringsSep " " cfg.keys}";
 
 in
 {
@@ -30,29 +25,6 @@ in
       default = [ "id_rsa" ];
       description = ''
         Keys to add to keychain.
-      '';
-    };
-
-    agents = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      description = ''
-        Agents to add.
-      '';
-    };
-
-    inheritType = mkOption {
-      type = types.nullOr (
-        types.enum [
-          "local"
-          "any"
-          "local-once"
-          "any-once"
-        ]
-      );
-      default = null;
-      description = ''
-        Inherit type to attempt from agent variables from the environment.
       '';
     };
 
