@@ -117,6 +117,13 @@ in
         Options to add to qutebrowser {file}`config.py` file.
         See <https://qutebrowser.org/doc/help/settings.html>
         for options.
+
+        All options passed to this attrset will be "flattened", and set
+        individually on a separate line of `config.set(<option>, <value>)`. If
+        an option requires a dictionary to be set (i.e. `aliases`,
+        `hints.padding`) therefore to be un-"flattened" when written, it should
+        have its own option defined on this module, just as with
+        `programs.qutebrowser.aliases`.
       '';
       example = literalExpression ''
         {
